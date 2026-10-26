@@ -208,7 +208,7 @@
     : Promise.resolve();
 
   var started = false, introStart = 0;
-  var clock = { t: 0, last: performance.now() };
+  var clock = { t: 0, last: performance.now(), lastRender: 0, renderDt: 0 };
 
   // 首屏静态画面：1.6 秒内动效没准备好，就先显示静态首页（文字是真实网页文字），不让人干等
   var poster = $('#poster'), posterImg = $('#posterImg'), posterOn = false;
@@ -323,9 +323,16 @@
       ring.style.transform = 'translate3d(' + ringP.x.toFixed(1) + 'px,' + ringP.y.toFixed(1) + 'px,0)';
       ring.style.opacity = S.inside ? '' : '0';
     }
-    if (stage && stage.ready) {
-      stage.update(S);
-      stage.render();
+    if (stage && stage.ready && !body.classList.contains('no-gl')) {
+      clock.renderDt += dt;
+      var interval = 1000 / stage.frameRate;
+      if (now - clock.lastRender >= interval - 1) {
+        S.dt = Math.min(1 / 10, clock.renderDt);
+        stage.update(S);
+        stage.render();
+        clock.lastRender = now;
+        clock.renderDt = 0;
+      }
     }
   }
   requestAnimationFrame(frame_);

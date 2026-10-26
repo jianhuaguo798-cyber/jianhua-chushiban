@@ -12,21 +12,21 @@
 <meta property="og:url" content="https://jianhuaguo798-cyber.github.io/jianhua-chushiban/">
 <meta property="og:image" content="https://jianhuaguo798-cyber.github.io/jianhua-chushiban/assets/img/og.jpg">
 <meta name="twitter:card" content="summary_large_image">
-<link rel="preload" href="assets/img/poster-desk.webp" as="image" media="(min-aspect-ratio: 41/50)" fetchpriority="high">
-<link rel="preload" href="assets/img/poster-mob.webp" as="image" media="(max-aspect-ratio: 41/50)" fetchpriority="high">
+<link rel="preload" href="assets/img/poster-desk-hd.webp" as="image" media="(min-aspect-ratio: 41/50)" fetchpriority="high">
+<link rel="preload" href="assets/img/poster-mob-hd.webp" as="image" media="(max-aspect-ratio: 41/50)" fetchpriority="high">
 <link rel="preload" href="assets/fonts/montserrat-800.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
-<link rel="stylesheet" href="assets/css/style.css">
+<link rel="stylesheet" href="assets/css/style.css?v=clarity-2">
 </head>
 <body class="is-loading">
 
 <canvas id="gl" aria-hidden="true"></canvas>
 
-<!-- 首屏静态画面：网速慢时先显示它（约 60KB），动效资源在后台下载好后无缝淡入 -->
+<!-- 首屏高清静态画面：动效资源在后台下载好后无缝淡入 -->
 <div class="poster" id="poster" aria-hidden="true">
   <picture>
-    <source media="(max-aspect-ratio: 41/50)" srcset="assets/img/poster-mob.webp">
-    <img id="posterImg" src="assets/img/poster-desk.webp" alt="" fetchpriority="high" decoding="async">
+    <source media="(max-aspect-ratio: 41/50)" srcset="assets/img/poster-mob-hd.webp">
+    <img id="posterImg" src="assets/img/poster-desk-hd.webp" alt="" fetchpriority="high" decoding="async">
   </picture>
 </div>
 
@@ -98,8 +98,8 @@
 
 <script src="assets/js/vendor/three.min.js"></script>
 <script src="assets/js/vendor/lenis.min.js"></script>
-<script src="assets/js/shaders.js"></script>
-<script src="assets/js/stage.js"></script>
-<script src="assets/js/main.js"></script>
+<script src="assets/js/shaders.js?v=clarity-2"></script>
+<script src="assets/js/stage.js?v=clarity-2"></script>
+<script src="assets/js/main.js?v=clarity-2"></script>
 </body>
 </html>

@@ -95,8 +95,9 @@
     r.setClearColor(0xe4e6f8, 1);
     this.gl2 = r.capabilities.isWebGL2;
     this.maxTex = r.capabilities.maxTextureSize;
-    this.budget = opts.lowPower ? 1.6e6 : 3.4e6;   // 渲染像素预算
-    this.minBudget = opts.lowPower ? 1.0e6 : 2.1e6; // 保留人物细节，避免连续降档后画面发糊
+    // 优先保留屏幕像素；性能不足时降低动效帧率，不再把人物持续降采样。
+    this.budget = opts.lowPower ? 4.0e6 : 8.3e6;
+    this.frameRate = opts.lowPower ? 30 : 60;
     this.cam = new THREE.PerspectiveCamera(FOV, 1, 0.05, 400);
     this.ortho = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
     this.quadGeo = new THREE.PlaneGeometry(2, 2);
@@ -126,13 +127,22 @@
     var done = 0;
     return Promise.all(list.map(function (it) {
       return new Promise(function (res, rej) {
-        loader.load(base + it[1], function (tx) {
+        function attempt(n) {
+        loader.load(base + it[1] + (n ? '?retry=' + n : ''), function (tx) {
           tx.anisotropy = Math.min(4, self.renderer.capabilities.getMaxAnisotropy());
           self.tex[it[0]] = tx;
-          if (it[0] === 'portrait') self.tex.portraitMask = tx; // 增强图自带透明通道
+          if (it[0] === 'portrait') {
+            self.tex.portraitMask = tx;
+            tx.minFilter = THREE.LinearFilter;
+          }
           done++; onProgress && onProgress(done / list.length);
           res();
-        }, undefined, function () { rej(new Error('load ' + it[1])); });
+        }, undefined, function () {
+          if (n < 2) setTimeout(function () { attempt(n + 1); }, 350 * (n + 1));
+          else rej(new Error('load ' + it[1]));
+        });
+        }
+        attempt(0);
       });
     }));
   };
@@ -144,10 +154,10 @@
 
     // 渲染目标
     var rtOpt = { minFilter: THREE.LinearFilter, magFilter: THREE.LinearFilter, format: THREE.RGBAFormat, depthBuffer: false, stencilBuffer: false };
-    this.rtA = new THREE.WebGLRenderTarget(4, 4, Object.assign({}, rtOpt, this.gl2 ? { samples: 4 } : {}));
-    this.rtScene = new THREE.WebGLRenderTarget(4, 4, Object.assign({}, rtOpt, this.gl2 ? { samples: 4 } : {}));
+    this.rtA = new THREE.WebGLRenderTarget(4, 4, rtOpt);
+    this.rtScene = new THREE.WebGLRenderTarget(4, 4, rtOpt);
     this.rtReed = new THREE.WebGLRenderTarget(4, 4, rtOpt);
-    this.rtFg = new THREE.WebGLRenderTarget(4, 4, Object.assign({}, rtOpt, { depthBuffer: true }, this.gl2 ? { samples: 4 } : {}));
+    this.rtFg = new THREE.WebGLRenderTarget(4, 4, Object.assign({}, rtOpt, { depthBuffer: true }));
     this.rtBloomA = new THREE.WebGLRenderTarget(4, 4, rtOpt);
     this.rtBloomB = new THREE.WebGLRenderTarget(4, 4, rtOpt);
     // 交互场需要能渲染到半浮点纹理（部分 iOS 只有 half_float 扩展），都没有就关掉擦亮效果
@@ -205,7 +215,7 @@
     this.sMain.add(this.ring);
 
     this.mPortrait = mat({ fs: SH.FS_PORTRAIT, blend: CUSTOM_COVER, uniforms: {
-      tColor: { value: tx.portrait }, tMask: { value: tx.portraitMask }, uKeyR: { value: 0.011 }, uSkin: { value: 0.12 }, uMaskAlpha: { value: 1 },
+      tColor: { value: tx.portrait }, tMask: { value: tx.portraitMask }, uKeyR: { value: 0.011 }, uSkin: { value: 0 }, uMaskAlpha: { value: 1 },
       uOpacity: { value: 0 }, uTime: { value: 0 }, uTint: { value: new THREE.Vector3(0.90, 0.88, 0.99) }, uWaterV: { value: 0.12 },
       tBack: { value: this.rtA.texture }, uRes: { value: new THREE.Vector2(2, 2) }, uHaze: { value: new THREE.Vector3(0.88, 0.90, 1.0) }
     } });
@@ -250,7 +260,7 @@
     });
     this.sPrism.add(this.portrait);
     this.mPRefl = mat({ fs: SH.FS_PREFL, blend: CUSTOM_KEEPA, uniforms: {
-      tColor: { value: tx.portrait }, tMask: { value: tx.portraitMask }, uKeyR: { value: 0.011 }, uSkin: { value: 0.12 }, uMaskAlpha: { value: 1 },
+      tColor: { value: tx.portrait }, tMask: { value: tx.portraitMask }, uKeyR: { value: 0.011 }, uSkin: { value: 0 }, uMaskAlpha: { value: 1 },
       uOpacity: { value: 0 }, uTime: { value: 0 }, uWaterV: { value: 0.12 }
     } });
     this.pRefl = new THREE.Mesh(this.portrait.geometry, this.mPRefl);
@@ -342,7 +352,7 @@
       uRes: { value: new THREE.Vector2() }, uTime: { value: 0 },
       uLens: { value: new THREE.Vector3(-999, -999, 20) }, uLensV: { value: new THREE.Vector2() }, uLensA: { value: 0 },
       uShock: { value: new THREE.Vector4(0, 0, 9, 0) },
-      uWhite: { value: 1 }, uBurst: { value: 0 }, uCA: { value: 0 }, uBloom: { value: 0.35 }, uGrain: { value: 0.018 },
+      uWhite: { value: 1 }, uBurst: { value: 0 }, uCA: { value: 0 }, uBloom: { value: 0.24 }, uGrain: { value: 0.004 },
       uWB: { value: new THREE.Vector3(0.975, 1.0, 1.045) }, uExpo: { value: 1.04 }, uVib: { value: 0.35 }, uClarity: { value: 0.55 }, uGradeOn: { value: 1 },
       uDbg: { value: this.opts.debug || 0 }, uFrame: { value: new THREE.Vector4() }
     } });
@@ -461,8 +471,8 @@
     if (!(W > 2 && H > 2)) return;              // 隐藏面板 / 折叠窗口时宽高可能为 0
     this.W = W; this.H = H; this.L = L;
     var base = Math.min(window.devicePixelRatio || 1, 2);
-    var dpr = Math.min(base, Math.sqrt(this.budget / (W * H)));
-    this.dpr = Math.max(0.6, dpr);
+    var dpr = Math.min(base, Math.sqrt(this.budget / (W * H)), this.maxTex / W, this.maxTex / H);
+    this.dpr = dpr;
     var rw = Math.round(W * this.dpr), rh = Math.round(H * this.dpr);
     this.rw = rw; this.rh = rh;
     this.renderer.setPixelRatio(1);
@@ -873,14 +883,11 @@
     this.shock.age += dt;
     po.uShock.value.set(this.shock.x * dpr, (H - this.shock.y) * dpr, this.shock.age, this.shock.age < 2.5 ? this.shock.amp : 0);
 
-    // 性能自适应
+    // 性能自适应仅调整帧率，保留眼睛、发丝的空间分辨率。
     this.perf.acc += dt; this.perf.n++;
     if (this.perf.acc > 2.5) {
       var avg = this.perf.acc / this.perf.n;
-      if (avg > 1 / 42 && this.perf.steps < 3 && T > 4 && this.budget > this.minBudget) {
-        this.perf.steps++; this.budget = Math.max(this.minBudget, this.budget * 0.66);
-        this.resize(this.W, this.H, this.L);
-      }
+      if (avg > 1 / 30 && T > 4) this.frameRate = 30;
       this.perf.acc = 0; this.perf.n = 0;
     }
   };

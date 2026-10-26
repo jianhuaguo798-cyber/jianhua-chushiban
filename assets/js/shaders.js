@@ -182,8 +182,7 @@
     '  a *= mix(1.0, smoothstep(0.0, 0.08, uv.x)*smoothstep(1.0, 0.88, uv.x), smoothstep(0.30, 0.0, uv.y));',
     '  vec3 col = c.rgb;',
     // 压对比、提暗部：电脑渲染感主要来自过硬的对比
-    '  col = mix(vec3(0.70, 0.71, 0.82), col, 0.93);',
-    '  col *= 1.05;',
+    '  col *= 1.02;',
     '  float hb = smoothstep(0.04, 0.16, col.b - col.r);',   // 偏蓝的地方（头发）
     '  col = mix(col, col*vec3(0.88, 0.98, 1.10), hb*0.6);',
     // 光包裹：背景的亮光漫进人物轮廓边缘
@@ -191,9 +190,9 @@
     '  float mB = mix(edgeMask.r, edgeMask.a, uMaskAlpha);',
     '  float wrap = clamp((1.0 - mB)*1.8, 0.0, 1.0);',
     '  vec3 bk = backBlur(gl_FragCoord.xy/uRes);',
-    '  col = mix(col, max(col, bk*1.04), wrap*0.70);',
+    '  col = mix(col, max(col, bk*1.04), wrap*0.30);',
     // 大气：人在远处，蒙一层天空的雾色
-    '  col = mix(col, uHaze, 0.04);',
+    '  col = mix(col, uHaze, 0.01);',
     '  float glint = 0.55 + 0.45*sin(uv.x*140.0 - uTime*3.0)*sin(uv.x*37.0 + uTime*1.7);',
     '  col += exp(-pow((uv.y - wv)/0.0022, 2.0))*0.20*glint;',
     '  gl_FragColor = vec4(col, a*uOpacity);',
@@ -338,7 +337,7 @@
     '  float lim = mix(3.0, 1.1, near);',
     '  dR = clamp(dR, -lim, lim); dG = clamp(dG, -lim, lim); dB = clamp(dB, -lim, lim);',
     // 玻璃不是绝对透亮：竖直方向三点平均，轻微柔化
-    '  float vb = 1.6/uRes.y;',
+    '  float vb = mix(1.2, 0.35, near)/uRes.y;',
     '  vec3 col = (tap(uv, dR, dG, dB, dist)*2.0 + tap(uv + vec2(0.0, vb), dR, dG, dB, dist) + tap(uv - vec2(0.0, vb), dR, dG, dB, dist))*0.25;',
     // 菲涅尔：棱的侧坡反射身后亮天空
     '  float cosi = n.z;',
@@ -650,7 +649,7 @@
     '  vec2 uv = vUv; vec2 p = uv*uRes;',
     // 镜头横向色差：只在画面边缘、很轻
     '  vec2 cc = uv - 0.5;',
-    '  float ca = dot(cc, cc)*0.0025 + uCA;',
+    '  float ca = dot(cc, cc)*0.00035 + uCA;',
     '  vec3 col;',
     '  col.r = texture2D(tColor, uv + cc*ca).r;',
     '  col.g = texture2D(tColor, uv).g;',
